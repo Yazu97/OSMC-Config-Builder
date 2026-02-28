@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSMC Config Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inconsolata:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg:       #08080a;
+  --s1:       #0f0f13;
+  --s2:       #151519;
+  --s3:       #1c1c22;
+  --border:   #23233a;
+  --border2:  #2e2e48;
+  --text:     #d2d2e0;
+  --muted:    #50506a;
+  --accent:   #8888aa;
+  --gold:     #c8a84b;
+  --gold2:    #e8c86a;
+  --diamond:  #7ecfcf;
+  --stone:    #8a8aaa;
+  --danger:   #e05555;
+  --success:  #55c488;
+  --warn:     #e09050;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inconsolata', monospace;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.013) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.013) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 35% at 5% 95%, rgba(120,90,20,.07) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 55% at 95% 5%, rgba(20,40,120,.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+#app {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 230px 1fr;
+  height: 100vh;
+}
+
+/* ── TOPBAR ── */
+#topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,8,10,.95);
+  backdrop-filter: blur(10px);
+  gap: 14px;
+  z-index: 50;
+}
+
+.logo {
+  font-family: 'Cinzel', serif;
+  font-size: .8rem;
+  letter-spacing: .28em;
+  color: var(--stone);
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+.logo em { color: var(--gold); font-style: normal; }
+
+.vsep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+.skill-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px;
+  background: var(--s1); border: 1px solid var(--border);
+  font-size: .68rem; letter-spacing: .08em; color: var(--muted);
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.skill-pill:hover { border-color: var(--border2); color: var(--text); }
+.skill-pill .dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+
+.topbar-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--s1);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-top {
+  flex: 1; overflow-y: auto; padding: 14px 0;
+}
+
+.sidebar-section { padding: 0 10px; margin-bottom: 6px; }
+.sidebar-label {
+  font-size: .52rem; letter-spacing: .28em; text-transform: uppercase;
+  color: var(--muted); padding: 6px 8px 3px;
+}
+
+.skill-nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px;
+  cursor: pointer; border: 1px solid transparent;
+  color: var(--muted); font-size: .75rem; letter-spacing: .04em;
+  transition: all .14s; border-radius: 0; user-select: none;
+  position: relative;
+}
+.skill-nav-item:hover { color: var(--text); background: var(--s2); }
+.skill-nav-item.active {
+  color: var(--text); background: var(--s2);
+  border-color: var(--border); border-left-color: var(--gold);
+}
+.skill-nav-item .skill-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.skill-nav-item .skill-name {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.skill-nav-item .skill-id-badge {
+  font-size: .55rem; color: var(--muted); opacity: .7;
+}
+
+.nav-sep { height: 1px; background: var(--border); margin: 10px 10px; }
+
+.page-nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px;
+  cursor: pointer; border: 1px solid transparent;
+  color: var(--muted); font-size: .74rem;
+  transition: all .14s; user-select: none;
+}
+.page-nav-item:hover { color: var(--text); }
+.page-nav-item.active { color: var(--text); }
+.page-nav-item .pg-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: .9rem; }
+
+.sidebar-bottom {
+  border-top: 1px solid var(--border);
+  padding: 10px;
+}
+
+/* ── MAIN ── */
+#main {
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn {
+  font-family: 'Inconsolata', monospace;
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--s1); color: var(--text);
+  cursor: pointer; transition: all .14s; white-space: nowrap;
+  line-height: 1.4;
+}
+.btn:hover { background: var(--s2); border-color: var(--border2); }
+.btn.gold { border-color: var(--gold); color: var(--gold); }
+.btn.gold:hover { background: rgba(200,168,75,.1); }
+.btn.green { border-color: var(--success); color: var(--success); }
+.btn.green:hover { background: rgba(85,196,136,.1); }
+.btn.red { border-color: var(--danger); color: var(--danger); }
+.btn.red:hover { background: rgba(224,85,85,.1); }
+.btn.sm { padding: 4px 10px; font-size: .62rem; }
+.btn.xs { padding: 2px 7px; font-size: .58rem; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ═══════════════════════════════════════════
+   PANELS / PAGES
+═══════════════════════════════════════════ */
+.page { display: none; padding: 26px 28px; max-width: 1080px; animation: fadeUp .2s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+.page-header {
+  display: flex; align-items: baseline; gap: 14px;
+  padding-bottom: 16px; margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.page-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem; letter-spacing: .1em; color: var(--text);
+}
+.page-sub { font-size: .68rem; color: var(--muted); letter-spacing: .08em; }
+.page-actions { margin-left: auto; display: flex; gap: 6px; }
+
+/* ═══════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════ */
+.card {
+  background: var(--s1); border: 1px solid var(--border);
+  padding: 18px; margin-bottom: 14px;
+}
+.card-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.card-title {
+  font-size: .6rem; letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════
+   FORM FIELDS
+═══════════════════════════════════════════ */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label {
+  font-size: .58rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+}
+input[type=text], input[type=number], select, textarea {
+  font-family: 'Inconsolata', monospace; font-size: .82rem;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 7px 11px; outline: none;
+  width: 100%; transition: border-color .14s;
+  -webkit-appearance: none; appearance: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--stone); }
+input[type=checkbox] { width: auto; accent-color: var(--gold); cursor: pointer; }
+select option { background: var(--bg); }
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 3px; background: var(--border); cursor: pointer;
+  border: none; padding: 0;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px; background: var(--stone); border: none;
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ═══════════════════════════════════════════
+   TAGS
+═══════════════════════════════════════════ */
+.tags-wrap {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+  padding: 8px; background: var(--bg); border: 1px solid var(--border); min-height: 40px;
+}
+.tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.03); font-size: .7rem; color: var(--accent);
+  transition: all .12s;
+}
+.tag.ref { border-style: dashed; color: var(--muted); }
+.tag-x {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: .8rem; line-height: 1; padding: 0; transition: color .1s;
+}
+.tag-x:hover { color: var(--danger); }
+.tag-add {
+  display: flex; gap: 6px; margin-top: 6px; align-items: center;
+}
+.tag-add input { flex: 1; font-size: .75rem; padding: 5px 9px; }
+
+/* ═══════════════════════════════════════════
+   STAT BOXES
+═══════════════════════════════════════════ */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 14px; }
+.stat-box {
+  background: var(--s1); border: 1px solid var(--border);
+  padding: 14px 12px; text-align: center;
+}
+.stat-val {
+  font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--gold); display: block;
+}
+.stat-lbl {
+  font-size: .58rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════
+   TIER ROWS
+═══════════════════════════════════════════ */
+.tier-row {
+  border: 1px solid var(--border); background: var(--s1); margin-bottom: 6px;
+  transition: border-color .15s;
+}
+.tier-row:hover { border-color: var(--border2); }
+.tier-header {
+  display: flex; align-items: center; gap: 0;
+  background: var(--s2);
+}
+.tier-color-strip {
+  width: 4px; align-self: stretch; flex-shrink: 0;
+}
+.tier-xp-block {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-right: 1px solid var(--border);
+  min-width: 120px;
+}
+.tier-xp-block label {
+  font-size: .58rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+.tier-xp-block input {
+  width: 70px; font-family: 'Cinzel', serif; font-size: .95rem;
+  color: var(--gold); background: transparent; border-color: transparent;
+  text-align: center; padding: 3px 6px;
+}
+.tier-xp-block input:focus { background: var(--bg); border-color: var(--border); }
+.tier-meta {
+  flex: 1; padding: 8px 12px;
+  font-size: .65rem; color: var(--muted);
+  display: flex; align-items: center; gap: 10px;
+}
+.tier-meta .type-badge {
+  font-size: .58rem; letter-spacing: .1em;
+  padding: 2px 7px; border: 1px solid var(--border);
+  color: var(--muted); background: var(--bg);
+}
+.tier-body { padding: 10px 14px 12px; }
+
+/* ═══════════════════════════════════════════
+   EFFECT CARDS
+═══════════════════════════════════════════ */
+.effect-card {
+  border: 1px solid var(--border); border-left: 3px solid var(--gold);
+  background: var(--s1); padding: 16px; margin-bottom: 10px;
+}
+.effect-hd {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.effect-type-badge {
+  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); padding: 3px 10px; border: 1px solid rgba(200,168,75,.3);
+  background: rgba(200,168,75,.06);
+}
+.formula-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;
+}
+.formula-box {
+  background: var(--bg); border: 1px solid var(--border); padding: 10px 12px;
+}
+.formula-box label {
+  display: block; font-size: .56rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+}
+.formula-box input {
+  font-size: .88rem; color: var(--diamond); background: transparent;
+  border: none; padding: 0; outline: none;
+}
+.formula-box input:focus { color: var(--text); }
+.chance-bar-wrap { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.chance-bar-lbl { display: flex; justify-content: space-between; font-size: .62rem; color: var(--muted); margin-bottom: 5px; }
+.chance-bar-lbl strong { color: var(--gold); }
+.bar-track { height: 4px; background: var(--bg); border: 1px solid var(--border); }
+.bar-fill { height: 100%; background: linear-gradient(90deg, var(--stone), var(--gold)); transition: width .3s; }
+
+/* ═══════════════════════════════════════════
+   CURVE CHART
+═══════════════════════════════════════════ */
+.chart-box {
+  background: var(--s1); border: 1px solid var(--border); padding: 18px; margin-bottom: 14px;
+}
+.chart-canvas-wrap { position: relative; height: 300px; }
+.chart-mode-btns { display: flex; gap: 6px; margin-bottom: 14px; }
+.chart-mode-btns .btn.active { border-color: var(--gold); color: var(--gold); }
+
+/* ═══════════════════════════════════════════
+   MILESTONE TABLE
+═══════════════════════════════════════════ */
+.milestone-tbl { width: 100%; border-collapse: collapse; }
+.milestone-tbl th {
+  font-size: .56rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border);
+}
+.milestone-tbl td { padding: 6px 10px; font-size: .8rem; border-bottom: 1px solid rgba(35,35,58,.5); }
+.milestone-tbl tr:hover td { background: var(--s2); }
+.milestone-tbl .c-gold { color: var(--gold); }
+.milestone-tbl .c-blue { color: var(--diamond); }
+.milestone-tbl .c-muted { color: var(--muted); }
+
+/* ═══════════════════════════════════════════
+   SKILL CARDS (home page)
+═══════════════════════════════════════════ */
+.skill-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.skill-card {
+  background: var(--s1); border: 1px solid var(--border);
+  padding: 16px; cursor: pointer; transition: all .15s;
+  border-left: 3px solid var(--border); position: relative;
+}
+.skill-card:hover { background: var(--s2); border-color: var(--border2); }
+.skill-card.active-skill { border-left-color: var(--gold); }
+.skill-card-name {
+  font-family: 'Cinzel', serif; font-size: .85rem; letter-spacing: .1em; color: var(--text);
+  margin-bottom: 4px;
+}
+.skill-card-id { font-size: .62rem; color: var(--muted); margin-bottom: 10px; }
+.skill-card-stats { display: flex; gap: 10px; }
+.skill-card-stat { font-size: .62rem; color: var(--muted); }
+.skill-card-stat strong { color: var(--accent); }
+.skill-card-del {
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: .8rem; padding: 2px 6px; transition: color .12s;
+}
+.skill-card-del:hover { color: var(--danger); }
+
+/* ═══════════════════════════════════════════
+   JSON EDITOR
+═══════════════════════════════════════════ */
+textarea.json-ta {
+  width: 100%; min-height: 480px; font-size: .76rem; line-height: 1.7;
+  padding: 14px; resize: vertical; color: #90c070;
+  background: var(--bg); border: 1px solid var(--border);
+  font-family: 'Inconsolata', monospace;
+}
+textarea.json-ta:focus { border-color: var(--stone); }
+.json-status {
+  margin-top: 8px; padding: 7px 12px; border: 1px solid var(--border);
+  font-size: .7rem; display: flex; align-items: center; gap: 8px;
+}
+.json-status.ok { border-color: var(--success); color: var(--success); }
+.json-status.err { border-color: var(--danger); color: var(--danger); }
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+#toast {
+  position: fixed; bottom: 22px; right: 22px;
+  background: var(--s2); border: 1px solid var(--border2);
+  color: var(--text); padding: 9px 16px; font-size: .76rem; z-index: 999;
+  opacity: 0; transform: translateY(8px); transition: all .22s; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: none; }
+#toast.ok { border-color: var(--success); color: var(--success); }
+#toast.err { border-color: var(--danger); color: var(--danger); }
+#toast.warn { border-color: var(--warn); color: var(--warn); }
+
+/* ═══════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--s1); border: 1px solid var(--border2);
+  padding: 24px; min-width: 360px; max-width: 92vw;
+  transform: translateY(12px); transition: transform .2s;
+}
+.modal-overlay.open .modal { transform: none; }
+.modal-title {
+  font-family: 'Cinzel', serif; font-size: .9rem; letter-spacing: .1em;
+  color: var(--text); margin-bottom: 18px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* ═══════════════════════════════════════════
+   UNSAVED DOT
+═══════════════════════════════════════════ */
+.unsaved { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-left: 6px; vertical-align: middle; display: none; }
+.unsaved.show { display: inline-block; }
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 700px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: 52px auto 1fr; }
+  #sidebar { flex-direction: row; flex-wrap: wrap; padding: 6px; border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar-label { display: none; }
+  .nav-sep { display: none; }
+  .page { padding: 14px; }
+  .grid2, .grid3 { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .formula-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- New Skill Modal -->
+<div class="modal-overlay" id="newSkillModal">
+  <div class="modal">
+    <div class="modal-title">New Skill</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="field">
+        <label>Skill ID (e.g. osmc:woodcutting)</label>
+        <input type="text" id="ns_id" placeholder="osmc:skillname">
+      </div>
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="ns_name" placeholder="Woodcutting">
+      </div>
+      <div class="field">
+        <label>Color (hex)</label>
+        <input type="text" id="ns_color" value="#557755">
+      </div>
+      <div class="field">
+        <label>Base Formula Multiplier (A)</label>
+        <input type="number" id="ns_a" value="50">
+      </div>
+      <div class="field">
+        <label>Formula Exponent (B)</label>
+        <input type="number" id="ns_b" value="2.5" step="0.1">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('newSkillModal')">Cancel</button>
+      <button class="btn gold" onclick="createSkill()">Create Skill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-title">Import Skill JSON</div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Paste JSON or use file picker below</label>
+      <textarea class="json-ta" id="importTA" style="min-height:220px;" placeholder='{ "id": "osmc:mining", ... }'></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:4px;">
+      <button class="btn" onclick="document.getElementById('importFile').click()">📁 Open File</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="readImportFile(event)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('importModal')">Cancel</button>
+      <button class="btn gold" onclick="doImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- TOPBAR -->
+  <header id="topbar">
+    <div class="logo">OSMC <em>·</em> Config Builder</div>
+    <div class="vsep"></div>
+    <div id="topbarSkillPill" class="skill-pill" onclick="goPage('overview')" style="display:none">
+      <div class="dot" id="topDot"></div>
+      <span id="topSkillLabel">—</span>
+      <span class="unsaved" id="unsavedDot"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn" onclick="openModal('importModal')">⬆ Import JSON</button>
+      <button class="btn gold" onclick="exportCurrentSkill()" id="exportBtn" disabled>⬇ Export Skill</button>
+      <button class="btn" onclick="exportAllSkills()" id="exportAllBtn">⬇ Export All</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-top">
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Skills</div>
+        <div id="skillNavList"></div>
+        <div style="padding: 6px 8px 0;">
+          <button class="btn green xs" style="width:100%" onclick="openModal('newSkillModal')">+ New Skill</button>
+        </div>
+      </div>
+
+      <div class="nav-sep"></div>
+
+      <div class="sidebar-section" id="skillPageNav" style="display:none">
+        <div class="sidebar-label">Edit Skill</div>
+        <div class="page-nav-item" id="pnav-overview" onclick="goPage('overview')">
+          <span class="pg-icon">⬡</span> Overview
+        </div>
+        <div class="page-nav-item" id="pnav-curve" onclick="goPage('curve')">
+          <span class="pg-icon">◈</span> Level Curve
+        </div>
+        <div class="page-nav-item" id="pnav-sources" onclick="goPage('sources')">
+          <span class="pg-icon">◆</span> XP Sources
+        </div>
+        <div class="page-nav-item" id="pnav-effects" onclick="goPage('effects')">
+          <span class="pg-icon">◇</span> Skill Effects
+        </div>
+        <div class="page-nav-item" id="pnav-json" onclick="goPage('json')">
+          <span class="pg-icon">{ }</span> JSON Output
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sidebar-bottom">
+      <div style="font-size:.58rem;color:var(--muted);letter-spacing:.1em;line-height:1.6;">
+        Changes auto-saved<br>to browser storage
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- ══════════════════ HOME ══════════════════ -->
+    <section class="page active" id="page-home">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Skills</div>
+          <div class="page-sub">Manage your OSMC skill configurations</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn green" onclick="openModal('newSkillModal')">+ New Skill</button>
+        </div>
+      </div>
+
+      <div class="stats-row" id="homeStats">
+        <div class="stat-box"><span class="stat-val" id="hs-skills">0</span><span class="stat-lbl">Skills</span></div>
+        <div class="stat-box"><span class="stat-val" id="hs-tiers">0</span><span class="stat-lbl">Total XP Tiers</span></div>
+        <div class="stat-box"><span class="stat-val" id="hs-blocks">0</span><span class="stat-lbl">Total Blocks</span></div>
+        <div class="stat-box"><span class="stat-val" id="hs-effects">0</span><span class="stat-lbl">Total Effects</span></div>
+      </div>
+
+      <div class="skill-cards" id="homeSkillCards"></div>
+
+      <div class="card" style="border-style:dashed;text-align:center;padding:32px;cursor:pointer;" onclick="openModal('newSkillModal')">
+        <div style="font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);">+ Create New Skill</div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ OVERVIEW ══════════════════ -->
+    <section class="page" id="page-overview">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Overview</div>
+          <div class="page-sub">Skill identity & statistics</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Identity</div></div>
+        <div class="grid3" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Skill ID</label>
+            <input type="text" id="ov_id" oninput="skillField('id',this.value)">
+          </div>
+          <div class="field">
+            <label>Display Name</label>
+            <input type="text" id="ov_name" oninput="skillField('displayName.text',this.value)">
+          </div>
+          <div class="field">
+            <label>Hex Color</label>
+            <input type="text" id="ov_color" oninput="skillField('color',this.value)">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label class="field" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="ov_enabled" onchange="skillField('enabled',this.checked)">
+            <span style="font-size:.7rem;color:var(--muted);">Enabled</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="stats-row" id="ovStats">
+        <div class="stat-box"><span class="stat-val" id="ov-tiers">0</span><span class="stat-lbl">XP Tiers</span></div>
+        <div class="stat-box"><span class="stat-val" id="ov-blocks">0</span><span class="stat-lbl">Block Targets</span></div>
+        <div class="stat-box"><span class="stat-val" id="ov-effects">0</span><span class="stat-lbl">Effects</span></div>
+        <div class="stat-box"><span class="stat-val" id="ov-maxXP">—</span><span class="stat-lbl">Max Level XP</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Level Formula</div></div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--stone);padding:10px 16px;font-size:.92rem;color:var(--gold);">
+            floor( <input type="number" id="ov_fa" value="50" min="1" style="width:60px;display:inline;font-size:.92rem;color:var(--gold);background:transparent;border:none;border-bottom:1px solid var(--border2);padding:0 4px;" oninput="updateFormulaFromOv()"> × level <sup style="font-size:.6em">&#94;<input type="number" id="ov_fb" value="2.5" min="1" max="5" step="0.1" style="width:45px;display:inline;font-size:.85rem;color:var(--gold);background:transparent;border:none;border-bottom:1px solid var(--border2);padding:0 4px;" oninput="updateFormulaFromOv()"></sup> )
+          </div>
+          <div style="font-size:.65rem;color:var(--muted);">→ stored as <code id="ov_formula_preview" style="color:var(--muted)">floor(50 * (level^2.5))</code></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">XP Tier Summary</div></div>
+        <div id="ovTierSummary" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ CURVE ══════════════════ -->
+    <section class="page" id="page-curve">
+      <div class="page-header">
+        <div class="page-title">Level Curve</div>
+        <div class="page-sub">Visualise XP requirements and pacing</div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Parameters</div></div>
+        <div class="grid3">
+          <div class="field">
+            <label>Multiplier (A)</label>
+            <input type="number" id="cv_a" value="50" min="1" oninput="rebuildChart()">
+          </div>
+          <div class="field">
+            <label>Exponent (B)</label>
+            <input type="number" id="cv_b" value="2.5" min="1" max="8" step="0.05" oninput="rebuildChart()">
+          </div>
+          <div class="field">
+            <label>Max Level</label>
+            <input type="number" id="cv_max" value="99" min="10" max="200" oninput="rebuildChart()">
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:.68rem;color:var(--muted);">
+          Formula: <code id="cv_formula_display" style="color:var(--gold)">floor(50 × level^2.5)</code>
+          &nbsp;·&nbsp; Level 50 requires <code id="cv_l50" style="color:var(--diamond)">—</code> XP
+          &nbsp;·&nbsp; Level 99 requires <code id="cv_l99" style="color:var(--diamond)">—</code> XP
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title">Chart</div>
+          <div class="chart-mode-btns">
+            <button class="btn sm active" id="cmb-xp" onclick="setChartMode('xp')">XP Required</button>
+            <button class="btn sm" id="cmb-cum" onclick="setChartMode('cum')">Cumulative</button>
+            <button class="btn sm" id="cmb-delta" onclick="setChartMode('delta')">XP Per Level</button>
+            <button class="btn sm" id="cmb-compare" onclick="setChartMode('compare')">Compare XP Sources</button>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" id="compareHint" style="display:none;border-color:var(--border2);">
+        <div class="card-title" style="margin-bottom:10px;">Levels to reach via each XP source</div>
+        <div id="compareTable"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Milestone Reference Table</div></div>
+        <div style="overflow-x:auto;">
+          <table class="milestone-tbl" id="milestoneTable">
+            <thead><tr>
+              <th>Level</th><th>XP Required</th><th>Total XP</th><th>XP to Next</th><th>Drop Bonus</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ SOURCES ══════════════════ -->
+    <section class="page" id="page-sources">
+      <div class="page-header">
+        <div class="page-title">XP Sources</div>
+        <div class="page-sub">Block break experience tiers — ordered by XP gain</div>
+        <div class="page-actions">
+          <button class="btn green" onclick="addTier()">+ Add Tier</button>
+        </div>
+      </div>
+
+      <div style="font-size:.68rem;color:var(--muted);margin-bottom:14px;line-height:1.7;">
+        Dashed borders = tag references (prefixed with <code>#</code>). Solid borders = direct block IDs.
+        Changes are applied to the JSON immediately.
+      </div>
+
+      <div id="tiersContainer"></div>
+    </section>
+
+    <!-- ══════════════════ EFFECTS ══════════════════ -->
+    <section class="page" id="page-effects">
+      <div class="page-header">
+        <div class="page-title">Skill Effects</div>
+        <div class="page-sub">Passive bonuses unlocked at specific levels</div>
+        <div class="page-actions">
+          <button class="btn green" onclick="addEffect()">+ Add Effect</button>
+        </div>
+      </div>
+      <div id="effectsContainer"></div>
+    </section>
+
+    <!-- ══════════════════ JSON ══════════════════ -->
+    <section class="page" id="page-json">
+      <div class="page-header">
+        <div class="page-title">JSON Output</div>
+        <div class="page-sub">Live JSON for this skill config file</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <button class="btn" onclick="syncJsonFromState()">↻ Refresh from Editor</button>
+        <button class="btn" onclick="applyJsonToState()">↑ Apply JSON to Editor</button>
+        <button class="btn" onclick="formatJson()">Format</button>
+        <button class="btn gold" onclick="exportCurrentSkill()">⬇ Download File</button>
+      </div>
+      <textarea class="json-ta" id="jsonTA" spellcheck="false" oninput="liveValidateJson()"></textarea>
+      <div class="json-status" id="jsonStatus">—</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let skills = []; // array of skill objects
+let currentSkillIdx = null;
+let chartInst = null;
+let chartMode = 'xp';
+
+const DEFAULT_SKILL = () => ({
+  id: 'osmc:new_skill',
+  displayName: { text: 'New Skill', bold: true },
+  color: '#555577',
+  enabled: true,
+  levelFormula: 'floor(50 * (level^2.5))',
+  _formulaA: 50,
+  _formulaB: 2.5,
+  expSources: [],
+  skillEffects: [],
+  globalChanceDrops: {}
+});
+
+const MINING_SKILL = () => ({
+  id: 'osmc:mining',
+  displayName: { text: 'Mining', bold: true },
+  color: '#555555',
+  enabled: true,
+  levelFormula: 'floor(50 * (level^2.5))',
+  _formulaA: 50,
+  _formulaB: 2.5,
+  expSources: [
+    { expGain: 1, targets: ['minecraft:stone','minecraft:deepslate','minecraft:netherrack','minecraft:blackstone','minecraft:diorite','minecraft:andesite','minecraft:granite','minecraft:basalt'], requiredProperties: {}, type: 'osmc:block_break' },
+    { expGain: 5, targets: ['#c:ores/coal','minecraft:calcite','minecraft:smooth_basalt','minecraft:amethyst_block'], requiredProperties: {}, type: 'osmc:block_break' },
+    { expGain: 10, targets: ['#c:ores/quartz','#c:ores/copper','minecraft:glowstone'], requiredProperties: {}, type: 'osmc:block_break' },
+    { expGain: 15, targets: ['#c:ores/iron','#c:ores/lapis'], requiredProperties: {}, type: 'osmc:block_break' },
+    { expGain: 20, targets: ['#c:ores/gold','#c:obsidians'], requiredProperties: {}, type: 'osmc:block_break' },
+    { expGain: 30, targets: ['#c:ores/diamond','#cobblemon:sun_stone_ores','#cobblemon:dawn_stone_ores','#cobblemon:dusk_stone_ores','#cobblemon:fire_stone_ores','#cobblemon:ice_stone_ores','#cobblemon:leaf_stone_ores','#cobblemon:moon_stone_ores','#cobblemon:shiny_stone_ores','#cobblemon:thunder_stone_ores','#cobblemon:water_stone_ores'], requiredProperties: {}, type: 'osmc:block_break' }
+  ],
+  skillEffects: [
+    { type: 'osmc:block_drop_multiplier', reqLevel: 5, targets: ['minecraft:raw_iron','minecraft:raw_gold','minecraft:coal','minecraft:lapis_lazuli','minecraft:obsidian','minecraft:crying_obsidian'], blocks: ['#c:ores/iron','#c:ores/gold','#c:ores/coal','#c:ores/lapis','#c:obsidians'], chanceFormula: 'level / 50', expGainFormula: 'extra' }
+  ],
+  globalChanceDrops: {}
+});
+
+// ════════════════════════════════════════════
+// PERSISTENCE
+// ════════════════════════════════════════════
+function save() {
+  try {
+    localStorage.setItem('osmc_skills', JSON.stringify(skills));
+    localStorage.setItem('osmc_current', currentSkillIdx);
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const s = localStorage.getItem('osmc_skills');
+    if (s) {
+      skills = JSON.parse(s);
+      skills.forEach(sk => {
+        if (!sk._formulaA) sk._formulaA = parseFormulaParam(sk.levelFormula, 'A') || 50;
+        if (!sk._formulaB) sk._formulaB = parseFormulaParam(sk.levelFormula, 'B') || 2.5;
+      });
+    }
+    const ci = localStorage.getItem('osmc_current');
+    if (ci !== null && skills[parseInt(ci)]) currentSkillIdx = parseInt(ci);
+  } catch(e) {}
+}
+
+function parseFormulaParam(formula, which) {
+  const m = formula && formula.match(/floor\((\d+(?:\.\d+)?)\s*\*\s*\(level\^(\d+(?:\.\d+)?)\)\)/);
+  if (!m) return null;
+  return parseFloat(which === 'A' ? m[1] : m[2]);
+}
+
+// ════════════════════════════════════════════
+// SKILL MANAGEMENT
+// ════════════════════════════════════════════
+function cs() { return skills[currentSkillIdx]; }
+
+function selectSkill(idx) {
+  currentSkillIdx = idx;
+  save();
+  renderSidebar();
+  if (currentSkillIdx !== null) {
+    document.getElementById('skillPageNav').style.display = 'block';
+    document.getElementById('topbarSkillPill').style.display = 'flex';
+    document.getElementById('exportBtn').disabled = false;
+    goPage('overview');
+  } else {
+    document.getElementById('skillPageNav').style.display = 'none';
+    document.getElementById('topbarSkillPill').style.display = 'none';
+    document.getElementById('exportBtn').disabled = true;
+    goPage('home');
+  }
+}
+
+function createSkill() {
+  const id = document.getElementById('ns_id').value.trim();
+  const name = document.getElementById('ns_name').value.trim();
+  const color = document.getElementById('ns_color').value.trim();
+  const a = parseFloat(document.getElementById('ns_a').value) || 50;
+  const b = parseFloat(document.getElementById('ns_b').value) || 2.5;
+  if (!id || !name) { toast('ID and name required', 'err'); return; }
+  if (skills.find(s => s.id === id)) { toast('Skill ID already exists', 'err'); return; }
+  const sk = DEFAULT_SKILL();
+  sk.id = id; sk.displayName.text = name; sk.color = color;
+  sk._formulaA = a; sk._formulaB = b;
+  sk.levelFormula = `floor(${a} * (level^${b}))`;
+  skills.push(sk);
+  closeModal('newSkillModal');
+  toast(`Created ${name}`, 'ok');
+  selectSkill(skills.length - 1);
+}
+
+function deleteSkill(idx) {
+  if (!confirm(`Delete "${skills[idx].displayName.text}"? This cannot be undone.`)) return;
+  skills.splice(idx, 1);
+  if (currentSkillIdx === idx) { currentSkillIdx = skills.length > 0 ? 0 : null; }
+  else if (currentSkillIdx > idx) currentSkillIdx--;
+  save();
+  renderSidebar();
+  renderHome();
+  if (currentSkillIdx !== null && skills[currentSkillIdx]) {
+    selectSkill(currentSkillIdx);
+  } else {
+    selectSkill(null);
+  }
+  toast('Skill deleted');
+}
+
+function skillField(path, value) {
+  if (!cs()) return;
+  const parts = path.split('.');
+  let obj = cs();
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!obj[parts[i]]) obj[parts[i]] = {};
+    obj = obj[parts[i]];
+  }
+  obj[parts[parts.length - 1]] = value;
+  if (path === 'id') {
+    document.getElementById('topSkillLabel').textContent = value + ' · ' + cs().displayName.text;
+    renderSidebar();
+  }
+  if (path === 'displayName.text') {
+    document.getElementById('topSkillLabel').textContent = cs().id + ' · ' + value;
+    renderSidebar();
+  }
+  markUnsaved();
+  save();
+}
+
+function markUnsaved() {
+  document.getElementById('unsavedDot').classList.add('show');
+  setTimeout(() => document.getElementById('unsavedDot').classList.remove('show'), 1500);
+}
+
+// ════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════
+let currentPage = 'home';
+
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const pn = document.getElementById('pnav-' + id);
+  if (pn) pn.classList.add('active');
+  currentPage = id;
+
+  if (id === 'home') renderHome();
+  if (id === 'overview') renderOverview();
+  if (id === 'curve') { renderCurveParams(); setTimeout(rebuildChart, 60); }
+  if (id === 'sources') renderTiers();
+  if (id === 'effects') renderEffects();
+  if (id === 'json') syncJsonFromState();
+}
+
+// ════════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════════
+function renderSidebar() {
+  const list = document.getElementById('skillNavList');
+  list.innerHTML = skills.map((sk, i) => `
+    <div class="skill-nav-item ${currentSkillIdx === i ? 'active' : ''}" onclick="selectSkill(${i})">
+      <div class="skill-dot" style="background:${sk.color || 'var(--stone)'}"></div>
+      <span class="skill-name">${sk.displayName?.text || sk.id}</span>
+    </div>
+  `).join('') || `<div style="padding:8px 10px;font-size:.65rem;color:var(--muted);">No skills yet</div>`;
+
+  if (currentSkillIdx !== null && skills[currentSkillIdx]) {
+    const sk = cs();
+    const dot = document.getElementById('topDot');
+    if (dot) { dot.style.background = sk.color || 'var(--stone)'; }
+    const lbl = document.getElementById('topSkillLabel');
+    if (lbl) lbl.textContent = sk.id + ' · ' + (sk.displayName?.text || '');
+  }
+}
+
+// ════════════════════════════════════════════
+// HOME PAGE
+// ════════════════════════════════════════════
+function renderHome() {
+  const totalTiers = skills.reduce((a, s) => a + s.expSources.length, 0);
+  const totalBlocks = skills.reduce((a, s) => a + s.expSources.reduce((b, t) => b + t.targets.length, 0), 0);
+  const totalEffects = skills.reduce((a, s) => a + s.skillEffects.length, 0);
+  document.getElementById('hs-skills').textContent = skills.length;
+  document.getElementById('hs-tiers').textContent = totalTiers;
+  document.getElementById('hs-blocks').textContent = totalBlocks;
+  document.getElementById('hs-effects').textContent = totalEffects;
+
+  document.getElementById('homeSkillCards').innerHTML = skills.map((sk, i) => {
+    const blocks = sk.expSources.reduce((a, t) => a + t.targets.length, 0);
+    return `
+    <div class="skill-card ${currentSkillIdx === i ? 'active-skill' : ''}" onclick="selectSkill(${i})" style="border-left-color:${sk.color || 'var(--border)'}">
+      <button class="skill-card-del" onclick="event.stopPropagation();deleteSkill(${i})">✕</button>
+      <div class="skill-card-name">${sk.displayName?.text || sk.id}</div>
+      <div class="skill-card-id">${sk.id}</div>
+      <div class="skill-card-stats">
+        <div class="skill-card-stat"><strong>${sk.expSources.length}</strong> tiers</div>
+        <div class="skill-card-stat"><strong>${blocks}</strong> blocks</div>
+        <div class="skill-card-stat"><strong>${sk.skillEffects.length}</strong> effects</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// OVERVIEW PAGE
+// ════════════════════════════════════════════
+function renderOverview() {
+  if (!cs()) return;
+  const sk = cs();
+  document.getElementById('ov_id').value = sk.id;
+  document.getElementById('ov_name').value = sk.displayName?.text || '';
+  document.getElementById('ov_color').value = sk.color || '';
+  document.getElementById('ov_enabled').checked = sk.enabled;
+  document.getElementById('ov_fa').value = sk._formulaA;
+  document.getElementById('ov_fb').value = sk._formulaB;
+  document.getElementById('ov_formula_preview').textContent = sk.levelFormula;
+
+  const blocks = sk.expSources.reduce((a, t) => a + t.targets.length, 0);
+  const maxLvl = sk._maxLvl || 99;
+  const maxXP = levelXP(maxLvl, sk._formulaA, sk._formulaB);
+  document.getElementById('ov-tiers').textContent = sk.expSources.length;
+  document.getElementById('ov-blocks').textContent = blocks;
+  document.getElementById('ov-effects').textContent = sk.skillEffects.length;
+  document.getElementById('ov-maxXP').textContent = maxXP.toLocaleString();
+
+  const COLORS = ['var(--xp1)','var(--xp2)','var(--xp3)','var(--xp4)','var(--xp5)','var(--xp6)'];
+  const tierColors = tierXpColors();
+  document.getElementById('ovTierSummary').innerHTML = sk.expSources
+    .sort((a,b) => a.expGain - b.expGain)
+    .map(src => `
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:7px 12px;background:var(--s2);border:1px solid var(--border);border-left:3px solid ${tierXpColor(src.expGain)};margin-bottom:4px;">
+        <span style="font-family:'Cinzel',serif;font-size:.95rem;color:${tierXpColor(src.expGain)}">${src.expGain}</span>
+        <span style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">XP</span>
+        <span style="font-size:.7rem;color:var(--muted)">${src.targets.length} block${src.targets.length !== 1 ? 's' : ''}</span>
+      </div>
+    `).join('');
+}
+
+function updateFormulaFromOv() {
+  if (!cs()) return;
+  const a = parseFloat(document.getElementById('ov_fa').value) || 50;
+  const b = parseFloat(document.getElementById('ov_fb').value) || 2.5;
+  cs()._formulaA = a;
+  cs()._formulaB = b;
+  cs().levelFormula = `floor(${a} * (level^${b}))`;
+  document.getElementById('ov_formula_preview').textContent = cs().levelFormula;
+  markUnsaved();
+  save();
+}
+
+function tierXpColor(xp) {
+  if (xp >= 30) return '#7ecfcf';
+  if (xp >= 20) return '#c8a84b';
+  if (xp >= 15) return '#aab0c8';
+  if (xp >= 10) return '#d0cdc0';
+  if (xp >= 5)  return '#8a8870';
+  return '#7a7a8e';
+}
+
+// ════════════════════════════════════════════
+// CURVE PAGE
+// ════════════════════════════════════════════
+function levelXP(level, a, b) { return Math.floor(a * Math.pow(level, b)); }
+
+function renderCurveParams() {
+  if (!cs()) return;
+  document.getElementById('cv_a').value = cs()._formulaA;
+  document.getElementById('cv_b').value = cs()._formulaB;
+  document.getElementById('cv_max').value = cs()._maxLvl || 99;
+}
+
+function setChartMode(mode) {
+  chartMode = mode;
+  ['xp','cum','delta','compare'].forEach(m => {
+    const b = document.getElementById('cmb-' + m);
+    if (b) b.classList.toggle('active', m === mode);
+  });
+  document.getElementById('compareHint').style.display = mode === 'compare' ? 'block' : 'none';
+  rebuildChart();
+}
+
+function rebuildChart() {
+  if (!cs()) return;
+  const A = parseFloat(document.getElementById('cv_a').value) || 50;
+  const B = parseFloat(document.getElementById('cv_b').value) || 2.5;
+  const maxLvl = parseInt(document.getElementById('cv_max').value) || 99;
+
+  cs()._formulaA = A; cs()._formulaB = B; cs()._maxLvl = maxLvl;
+  cs().levelFormula = `floor(${A} * (level^${B}))`;
+  save();
+
+  const l50 = levelXP(50, A, B);
+  const l99 = levelXP(maxLvl, A, B);
+  document.getElementById('cv_formula_display').textContent = `floor(${A} × level^${B})`;
+  document.getElementById('cv_l50').textContent = l50.toLocaleString() + ' XP';
+  document.getElementById('cv_l99').textContent = l99.toLocaleString() + ' XP';
+
+  const labels = [], xpData = [], cumData = [], deltaData = [];
+  let cum = 0;
+  for (let lvl = 1; lvl <= maxLvl; lvl++) {
+    labels.push(lvl);
+    const xp = levelXP(lvl, A, B);
+    const prev = lvl > 1 ? levelXP(lvl - 1, A, B) : 0;
+    const delta = xp - prev;
+    cum += delta;
+    xpData.push(xp);
+    cumData.push(cum);
+    deltaData.push(delta);
+  }
+
+  const datasets = [];
+  if (chartMode === 'xp') {
+    datasets.push({ label: 'XP Required', data: xpData, borderColor: '#c8a84b', backgroundColor: 'rgba(200,168,75,.07)', borderWidth: 1.5, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4 });
+  } else if (chartMode === 'cum') {
+    datasets.push({ label: 'Cumulative XP', data: cumData, borderColor: '#7ecfcf', backgroundColor: 'rgba(126,207,207,.06)', borderWidth: 1.5, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4 });
+  } else if (chartMode === 'delta') {
+    datasets.push({ label: 'XP Per Level', data: deltaData, borderColor: '#8888aa', backgroundColor: 'rgba(136,136,170,.08)', borderWidth: 1.5, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4 });
+  } else if (chartMode === 'compare') {
+    // one dataset per XP tier
+    const palette = ['#7a7a8e','#8a8870','#d0cdc0','#aab0c8','#c8a84b','#7ecfcf','#e09050','#aa7ecf'];
+    cs().expSources.sort((a,b) => a.expGain - b.expGain).forEach((src, i) => {
+      const blocksNeeded = labels.map(lvl => {
+        const needed = levelXP(lvl, A, B);
+        return Math.ceil(needed / src.expGain);
+      });
+      datasets.push({
+        label: `${src.expGain} XP / block (${src.targets.length} targets)`,
+        data: blocksNeeded, borderColor: palette[i % palette.length],
+        backgroundColor: 'transparent', borderWidth: 1.4,
+        tension: 0.3, pointRadius: 0, pointHoverRadius: 3
+      });
+    });
+
+    // Compare table
+    const milestones = [10,20,30,40,50,60,70,80,90,99];
+    document.getElementById('compareTable').innerHTML = `
+      <div style="overflow-x:auto;">
+      <table class="milestone-tbl">
+        <thead><tr>
+          <th>XP / Block</th>
+          ${milestones.map(m => `<th>Lvl ${m}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+          ${cs().expSources.sort((a,b)=>a.expGain-b.expGain).map(src => `
+            <tr>
+              <td style="color:${tierXpColor(src.expGain)};font-family:'Cinzel',serif">${src.expGain}</td>
+              ${milestones.map(m => {
+                const need = Math.ceil(levelXP(m, A, B) / src.expGain);
+                return `<td class="c-muted">${need.toLocaleString()}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      </div>`;
+  }
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: chartMode === 'compare',
+          labels: { color: 'rgba(210,210,224,.7)', font: { family: 'Inconsolata', size: 11 }, boxWidth: 14 }
+        },
+        tooltip: {
+          backgroundColor: '#1c1c22', borderColor: '#2e2e48', borderWidth: 1,
+          titleColor: '#50506a', bodyColor: '#d2d2e0',
+          titleFont: { family: 'Inconsolata', size: 11 },
+          bodyFont: { family: 'Inconsolata', size: 12 },
+          callbacks: {
+            title: items => `Level ${items[0].label}`,
+            label: item => ` ${item.raw.toLocaleString()} ${chartMode === 'compare' ? 'blocks' : 'XP'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#50506a', font: { family: 'Inconsolata', size: 10 }, maxTicksLimit: 22 },
+          grid: { color: 'rgba(35,35,58,.7)' }, border: { color: '#23233a' }
+        },
+        y: {
+          ticks: {
+            color: '#50506a', font: { family: 'Inconsolata', size: 10 },
+            callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+          },
+          grid: { color: 'rgba(35,35,58,.7)' }, border: { color: '#23233a' }
+        }
+      }
+    }
+  });
+
+  // Milestone table
+  const milestones = [1,5,10,20,30,40,50,60,70,80,90,92,99].filter(m => m <= maxLvl);
+  let runCum = 0;
+  const rows = milestones.map(lvl => {
+    const xp = levelXP(lvl, A, B);
+    const prev = lvl > 1 ? levelXP(lvl-1, A, B) : 0;
+    runCum += (xp - prev);
+    const toNext = lvl < maxLvl ? levelXP(lvl+1, A, B) - xp : '—';
+    const dropBonus = cs().skillEffects.find(e => e.chanceFormula && e.chanceFormula.includes('/'));
+    let drop = '—';
+    if (dropBonus && dropBonus.chanceFormula) {
+      try { drop = (eval(dropBonus.chanceFormula.replace(/level/g, lvl)) * 100).toFixed(1) + '%'; } catch(e) {}
+    }
+    return `<tr>
+      <td class="c-gold" style="font-family:'Cinzel',serif">${lvl}</td>
+      <td>${xp.toLocaleString()}</td>
+      <td class="c-blue">${runCum.toLocaleString()}</td>
+      <td class="c-muted">${typeof toNext === 'number' ? toNext.toLocaleString() : toNext}</td>
+      <td class="c-muted">${drop}</td>
+    </tr>`;
+  });
+  document.querySelector('#milestoneTable tbody').innerHTML = rows.join('');
+}
+
+// ════════════════════════════════════════════
+// SOURCES PAGE
+// ════════════════════════════════════════════
+function renderTiers() {
+  if (!cs()) return;
+  const c = document.getElementById('tiersContainer');
+  if (cs().expSources.length === 0) {
+    c.innerHTML = `<div class="card" style="text-align:center;padding:28px;border-style:dashed;">
+      <div style="font-size:.7rem;color:var(--muted);">No XP tiers yet. Click "+ Add Tier" to create one.</div>
+    </div>`;
+    return;
+  }
+  c.innerHTML = cs().expSources
+    .sort((a,b) => a.expGain - b.expGain)
+    .map((src, rawIdx) => {
+      const idx = cs().expSources.indexOf(src);
+      const col = tierXpColor(src.expGain);
+      return `
+      <div class="tier-row" id="tier-row-${idx}">
+        <div class="tier-header">
+          <div class="tier-color-strip" style="background:${col}"></div>
+          <div class="tier-xp-block">
+            <label>XP</label>
+            <input type="number" value="${src.expGain}" min="1"
+              onchange="updateTierXP(${idx}, this.value)"
+              oninput="updateTierXP(${idx}, this.value)">
+          </div>
+          <div class="tier-meta">
+            <select onchange="updateTierType(${idx}, this.value)" style="font-size:.65rem;padding:3px 8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);">
+              <option value="osmc:block_break" ${src.type==='osmc:block_break'?'selected':''}>osmc:block_break</option>
+              <option value="osmc:block_place" ${src.type==='osmc:block_place'?'selected':''}>osmc:block_place</option>
+              <option value="osmc:entity_kill" ${src.type==='osmc:entity_kill'?'selected':''}>osmc:entity_kill</option>
+              <option value="osmc:item_craft" ${src.type==='osmc:item_craft'?'selected':''}>osmc:item_craft</option>
+              <option value="osmc:custom" ${src.type==='osmc:custom'?'selected':''}>osmc:custom</option>
+            </select>
+            <span>${src.targets.length} target${src.targets.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div style="margin-left:auto;padding-right:10px;display:flex;gap:6px;">
+            <button class="btn xs red" onclick="deleteTier(${idx})">Remove Tier</button>
+          </div>
+        </div>
+        <div class="tier-body">
+          <div style="font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Targets</div>
+          <div class="tags-wrap" id="tags-${idx}">
+            ${src.targets.map((t, ti) => `
+              <span class="tag ${t.startsWith('#') ? 'ref' : ''}">
+                ${t}
+                <button class="tag-x" onclick="removeTarget(${idx}, ${ti})">×</button>
+              </span>`).join('')}
+          </div>
+          <div class="tag-add">
+            <input type="text" id="tag-input-${idx}" placeholder="minecraft:block or #c:ores/iron" onkeydown="if(event.key==='Enter') addTarget(${idx})">
+            <button class="btn xs green" onclick="addTarget(${idx})">+ Add</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function addTier() {
+  if (!cs()) return;
+  cs().expSources.push({ expGain: 1, targets: [], requiredProperties: {}, type: 'osmc:block_break' });
+  markUnsaved(); save(); renderTiers();
+}
+
+function deleteTier(idx) {
+  if (!cs()) return;
+  cs().expSources.splice(idx, 1);
+  markUnsaved(); save(); renderTiers();
+}
+
+function updateTierXP(idx, val) {
+  if (!cs()) return;
+  cs().expSources[idx].expGain = parseInt(val) || 1;
+  markUnsaved(); save();
+  // recolor strip
+  const row = document.getElementById('tier-row-' + idx);
+  if (row) {
+    const strip = row.querySelector('.tier-color-strip');
+    if (strip) strip.style.background = tierXpColor(cs().expSources[idx].expGain);
+  }
+}
+
+function updateTierType(idx, val) {
+  if (!cs()) return;
+  cs().expSources[idx].type = val;
+  markUnsaved(); save();
+}
+
+function addTarget(idx) {
+  if (!cs()) return;
+  const inp = document.getElementById('tag-input-' + idx);
+  const val = inp.value.trim();
+  if (!val) return;
+  cs().expSources[idx].targets.push(val);
+  inp.value = '';
+  markUnsaved(); save();
+  renderTiersPartial(idx);
+}
+
+function removeTarget(tierIdx, targetIdx) {
+  if (!cs()) return;
+  cs().expSources[tierIdx].targets.splice(targetIdx, 1);
+  markUnsaved(); save();
+  renderTiersPartial(tierIdx);
+}
+
+function renderTiersPartial(tierIdx) {
+  const src = cs().expSources[tierIdx];
+  if (!src) return;
+  const wrap = document.getElementById('tags-' + tierIdx);
+  if (!wrap) return;
+  wrap.innerHTML = src.targets.map((t, ti) => `
+    <span class="tag ${t.startsWith('#') ? 'ref' : ''}">
+      ${t}
+      <button class="tag-x" onclick="removeTarget(${tierIdx}, ${ti})">×</button>
+    </span>`).join('');
+  const row = document.getElementById('tier-row-' + tierIdx);
+  if (row) {
+    const meta = row.querySelector('.tier-meta');
+    if (meta) {
+      const spans = meta.querySelectorAll('span');
+      if (spans.length > 0) spans[spans.length - 1].textContent = src.targets.length + ' target' + (src.targets.length !== 1 ? 's' : '');
+    }
+  }
+}
+
+// ════════════════════════════════════════════
+// EFFECTS PAGE
+// ════════════════════════════════════════════
+function renderEffects() {
+  if (!cs()) return;
+  const c = document.getElementById('effectsContainer');
+  if (cs().skillEffects.length === 0) {
+    c.innerHTML = `<div class="card" style="text-align:center;padding:28px;border-style:dashed;">
+      <div style="font-size:.7rem;color:var(--muted);">No skill effects. Click "+ Add Effect" to create one.</div>
+    </div>`;
+    return;
+  }
+  c.innerHTML = cs().skillEffects.map((ef, i) => {
+    const chance = ef.chanceFormula ? calcEffectChance(ef.chanceFormula, ef.reqLevel || 1) : null;
+    return `
+    <div class="effect-card">
+      <div class="effect-hd">
+        <div class="effect-type-badge">${ef.type || 'osmc:effect'}</div>
+        <div style="font-size:.65rem;color:var(--muted);">Unlocks at level
+          <input type="number" value="${ef.reqLevel || 1}" min="1" style="width:50px;display:inline;font-size:.78rem;background:transparent;border:none;border-bottom:1px solid var(--border2);color:var(--text);padding:0 4px;font-family:'Inconsolata',monospace;"
+            oninput="updateEffectField(${i},'reqLevel',parseInt(this.value))">
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <select style="font-size:.62rem;padding:3px 8px;" onchange="updateEffectField(${i},'type',this.value)">
+            <option value="osmc:block_drop_multiplier" ${ef.type==='osmc:block_drop_multiplier'?'selected':''}>block_drop_multiplier</option>
+            <option value="osmc:xp_boost" ${ef.type==='osmc:xp_boost'?'selected':''}>xp_boost</option>
+            <option value="osmc:speed_boost" ${ef.type==='osmc:speed_boost'?'selected':''}>speed_boost</option>
+            <option value="osmc:double_drop" ${ef.type==='osmc:double_drop'?'selected':''}>double_drop</option>
+            <option value="osmc:custom" ${ef.type==='osmc:custom'?'selected':''}>custom</option>
+          </select>
+          <button class="btn xs red" onclick="deleteEffect(${i})">Remove</button>
+        </div>
+      </div>
+
+      <div class="formula-row">
+        <div class="formula-box">
+          <label>Chance Formula</label>
+          <input type="text" value="${ef.chanceFormula || ''}" placeholder="level / 50"
+            oninput="updateEffectField(${i},'chanceFormula',this.value);updateEffectChance(${i},this.value)">
+        </div>
+        <div class="formula-box">
+          <label>XP Gain Formula</label>
+          <input type="text" value="${ef.expGainFormula || ''}" placeholder="extra"
+            oninput="updateEffectField(${i},'expGainFormula',this.value)">
+        </div>
+      </div>
+
+      ${chance !== null ? `
+      <div class="chance-bar-wrap">
+        <div class="chance-bar-lbl">
+          <span>Chance at req. level (${ef.reqLevel || 1})</span>
+          <strong id="eff-chance-${i}">${(chance*100).toFixed(1)}%</strong>
+        </div>
+        <div class="bar-track" style="margin-bottom:4px;">
+          <div class="bar-fill" id="eff-bar-${i}" style="width:${Math.min(100,chance*100)}%"></div>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted);">
+          At level 50: <strong style="color:var(--gold)">${(calcEffectChance(ef.chanceFormula,50)*100).toFixed(1)}%</strong>
+          &nbsp;·&nbsp; At level 99: <strong style="color:var(--gold)">${(calcEffectChance(ef.chanceFormula,99)*100).toFixed(1)}%</strong>
+        </div>
+      </div>` : ''}
+
+      <div style="margin-top:14px;">
+        <div style="font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Drop Targets (items)</div>
+        <div class="tags-wrap" id="eff-targets-${i}">
+          ${(ef.targets||[]).map((t,ti) => `<span class="tag ${t.startsWith('#')?'ref':''}">
+            ${t}<button class="tag-x" onclick="removeEffectTarget(${i},${ti},'targets')">×</button></span>`).join('')}
+        </div>
+        <div class="tag-add">
+          <input type="text" id="eff-t-inp-${i}" placeholder="minecraft:coal">
+          <button class="btn xs green" onclick="addEffectTarget(${i},'targets')">+ Add</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Source Blocks</div>
+        <div class="tags-wrap" id="eff-blocks-${i}">
+          ${(ef.blocks||[]).map((t,ti) => `<span class="tag ${t.startsWith('#')?'ref':''}">
+            ${t}<button class="tag-x" onclick="removeEffectTarget(${i},${ti},'blocks')">×</button></span>`).join('')}
+        </div>
+        <div class="tag-add">
+          <input type="text" id="eff-b-inp-${i}" placeholder="#c:ores/coal">
+          <button class="btn xs green" onclick="addEffectTarget(${i},'blocks')">+ Add</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcEffectChance(formula, level) {
+  try {
+    const result = eval(formula.replace(/level/g, level));
+    return isNaN(result) ? 0 : Math.min(1, Math.max(0, result));
+  } catch(e) { return 0; }
+}
+
+function updateEffectField(i, field, value) {
+  if (!cs()) return;
+  cs().skillEffects[i][field] = value;
+  markUnsaved(); save();
+}
+
+function updateEffectChance(effIdx, formula) {
+  const reqLvl = cs().skillEffects[effIdx]?.reqLevel || 1;
+  const chance = calcEffectChance(formula, reqLvl);
+  const el = document.getElementById('eff-chance-' + effIdx);
+  const bar = document.getElementById('eff-bar-' + effIdx);
+  if (el) el.textContent = (chance * 100).toFixed(1) + '%';
+  if (bar) bar.style.width = Math.min(100, chance * 100) + '%';
+}
+
+function addEffect() {
+  if (!cs()) return;
+  cs().skillEffects.push({
+    type: 'osmc:block_drop_multiplier', reqLevel: 5,
+    targets: [], blocks: [], chanceFormula: 'level / 50', expGainFormula: 'extra'
+  });
+  markUnsaved(); save(); renderEffects();
+}
+
+function deleteEffect(i) {
+  if (!cs()) return;
+  cs().skillEffects.splice(i, 1);
+  markUnsaved(); save(); renderEffects();
+}
+
+function addEffectTarget(effIdx, field) {
+  if (!cs()) return;
+  const key = field === 'targets' ? `eff-t-inp-${effIdx}` : `eff-b-inp-${effIdx}`;
+  const inp = document.getElementById(key);
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!cs().skillEffects[effIdx][field]) cs().skillEffects[effIdx][field] = [];
+  cs().skillEffects[effIdx][field].push(val);
+  inp.value = '';
+  markUnsaved(); save();
+  renderEffectTagsPartial(effIdx, field);
+}
+
+function removeEffectTarget(effIdx, targetIdx, field) {
+  if (!cs()) return;
+  cs().skillEffects[effIdx][field].splice(targetIdx, 1);
+  markUnsaved(); save();
+  renderEffectTagsPartial(effIdx, field);
+}
+
+function renderEffectTagsPartial(effIdx, field) {
+  const wrId = field === 'targets' ? `eff-targets-${effIdx}` : `eff-blocks-${effIdx}`;
+  const wr = document.getElementById(wrId);
+  if (!wr) return;
+  const list = cs().skillEffects[effIdx][field] || [];
+  wr.innerHTML = list.map((t, ti) => `<span class="tag ${t.startsWith('#')?'ref':''}">
+    ${t}<button class="tag-x" onclick="removeEffectTarget(${effIdx},${ti},'${field}')">×</button></span>`).join('');
+}
+
+// ════════════════════════════════════════════
+// JSON PAGE
+// ════════════════════════════════════════════
+function buildSkillJSON(sk) {
+  const out = {
+    levelFormula: sk.levelFormula,
+    expSources: sk.expSources.map(src => ({
+      expGain: src.expGain,
+      targets: src.targets,
+      requiredProperties: src.requiredProperties || {},
+      type: src.type
+    })),
+    skillEffects: sk.skillEffects.map(ef => {
+      const o = { type: ef.type };
+      if (ef.reqLevel !== undefined) o.reqLevel = ef.reqLevel;
+      if (ef.targets && ef.targets.length) o.targets = ef.targets;
+      if (ef.blocks && ef.blocks.length) o.blocks = ef.blocks;
+      if (ef.chanceFormula) o.chanceFormula = ef.chanceFormula;
+      if (ef.expGainFormula) o.expGainFormula = ef.expGainFormula;
+      return o;
+    }),
+    globalChanceDrops: sk.globalChanceDrops || {},
+    enabled: sk.enabled,
+    id: sk.id,
+    displayName: sk.displayName,
+    color: sk.color
+  };
+  return out;
+}
+
+function syncJsonFromState() {
+  if (!cs()) return;
+  document.getElementById('jsonTA').value = JSON.stringify(buildSkillJSON(cs()), null, 2);
+  document.getElementById('jsonStatus').className = 'json-status ok';
+  document.getElementById('jsonStatus').textContent = '✓ Valid JSON — synced from visual editor';
+}
+
+function liveValidateJson() {
+  const ta = document.getElementById('jsonTA');
+  const status = document.getElementById('jsonStatus');
+  try { JSON.parse(ta.value); status.className = 'json-status ok'; status.textContent = '✓ Valid JSON'; }
+  catch(e) { status.className = 'json-status err'; status.textContent = '✗ ' + e.message; }
+}
+
+function formatJson() {
+  const ta = document.getElementById('jsonTA');
+  try {
+    ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
+    document.getElementById('jsonStatus').className = 'json-status ok';
+    document.getElementById('jsonStatus').textContent = '✓ Formatted';
+  } catch(e) {
+    toast('Invalid JSON — cannot format', 'err');
+  }
+}
+
+function applyJsonToState() {
+  const ta = document.getElementById('jsonTA');
+  try {
+    const parsed = JSON.parse(ta.value);
+    ingestSkillJSON(parsed, currentSkillIdx);
+    save();
+    markUnsaved();
+    toast('Applied to visual editor', 'ok');
+    syncJsonFromState();
+  } catch(e) {
+    toast('Invalid JSON: ' + e.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════════
+// IMPORT / EXPORT
+// ════════════════════════════════════════════
+function ingestSkillJSON(json, idx) {
+  const sk = idx !== null && skills[idx] ? skills[idx] : DEFAULT_SKILL();
+  sk.id = json.id || sk.id;
+  sk.displayName = json.displayName || sk.displayName;
+  sk.color = json.color || sk.color;
+  sk.enabled = json.enabled !== undefined ? json.enabled : sk.enabled;
+  sk.levelFormula = json.levelFormula || sk.levelFormula;
+  sk._formulaA = parseFormulaParam(sk.levelFormula, 'A') || 50;
+  sk._formulaB = parseFormulaParam(sk.levelFormula, 'B') || 2.5;
+  sk.expSources = json.expSources || [];
+  sk.skillEffects = json.skillEffects || [];
+  sk.globalChanceDrops = json.globalChanceDrops || {};
+  if (idx === null) { skills.push(sk); currentSkillIdx = skills.length - 1; }
+  else skills[idx] = sk;
+  renderSidebar();
+  renderHome();
+}
+
+function readImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('importTA').value = e.target.result; };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function doImport() {
+  const text = document.getElementById('importTA').value.trim();
+  if (!text) { toast('Nothing to import', 'warn'); return; }
+  try {
+    const json = JSON.parse(text);
+    // Check if it's an array (bulk import)
+    if (Array.isArray(json)) {
+      let count = 0;
+      json.forEach(item => {
+        if (item.id) { ingestSkillJSON(item, null); count++; }
+      });
+      closeModal('importModal');
+      document.getElementById('importTA').value = '';
+      toast(`Imported ${count} skills`, 'ok');
+      selectSkill(skills.length - 1);
+    } else {
+      // Check if already exists
+      const existing = skills.findIndex(s => s.id === json.id);
+      if (existing >= 0) {
+        ingestSkillJSON(json, existing);
+        closeModal('importModal');
+        document.getElementById('importTA').value = '';
+        toast('Updated existing skill: ' + json.id, 'ok');
+        selectSkill(existing);
+      } else {
+        ingestSkillJSON(json, null);
+        closeModal('importModal');
+        document.getElementById('importTA').value = '';
+        toast('Imported: ' + json.id, 'ok');
+        selectSkill(skills.length - 1);
+      }
+    }
+    save();
+  } catch(e) {
+    toast('JSON parse error: ' + e.message, 'err');
+  }
+}
+
+function exportCurrentSkill() {
+  if (!cs()) { toast('No skill selected', 'warn'); return; }
+  const json = JSON.stringify(buildSkillJSON(cs()), null, 2);
+  downloadText(json, cs().id.replace(':', '_') + '.json');
+  toast('Downloaded ' + cs().id + '.json', 'ok');
+}
+
+function exportAllSkills() {
+  if (!skills.length) { toast('No skills to export', 'warn'); return; }
+  const all = skills.map(sk => buildSkillJSON(sk));
+  const json = JSON.stringify(all, null, 2);
+  downloadText(json, 'osmc_skills_config.json');
+  toast(`Exported ${skills.length} skills as JSON array`, 'ok');
+}
+
+function downloadText(text, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+  a.download = filename;
+  a.click();
+}
+
+// ════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', 2600);
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+function init() {
+  load();
+  if (skills.length === 0) {
+    // Seed with the mining skill from the uploaded config
+    skills.push(MINING_SKILL());
+    save();
+  }
+  renderSidebar();
+  renderHome();
+
+  if (currentSkillIdx !== null && skills[currentSkillIdx]) {
+    document.getElementById('skillPageNav').style.display = 'block';
+    document.getElementById('topbarSkillPill').style.display = 'flex';
+    document.getElementById('exportBtn').disabled = false;
+    renderSidebar();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
